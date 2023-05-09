@@ -1,6 +1,8 @@
 import JWT from 'jsonwebtoken'
 import {config} from 'dotenv'
 config()
+
+//middleware for authenticate the JWT token and decryption
 const JWT_SECRET=process.env.SINGING_SECRET
 export function authenticator(req,res,next){
     const token=req.headers["sessiontoken"]

@@ -1,3 +1,4 @@
+//all imports
 import express from 'express'
 import {
     generateAuthenticationOptions, verifyAuthenticationResponse
@@ -12,12 +13,14 @@ import sendSMS from '../helpers/sms.js';
 
 export const route=express.Router()
 
+//setting the values from env
 config()
 const JWT_SECRET=process.env.SINGING_SECRET
 const rpName=process.env.RP_NAME
 const rpID=process.env.RP_ID
 const origin=`https://${rpID}`
 
+// route-I: /authenticate - to authenticate user by sending OTP to the user's number
 route.post('/',async(req,res)=>{
     const {Email}=req.body
     try {
@@ -43,6 +46,8 @@ route.post('/',async(req,res)=>{
         console.log(error)
     }
 })
+
+// route-II: /authenticate/token-authenticate - to verify the otp of the user from client
 route.post('/token-authenticate',async (req,res)=>{
     const {Email,token}=req.body
     try {
@@ -64,11 +69,17 @@ route.post('/token-authenticate',async (req,res)=>{
         
     }
 })
+
+//route-III: /authenticate/generate-authenticate-option - to generate authentication option of WebAuthn 
 route.post('/generate-authenticate-option',async (req, res) => {
-    const {Email}=req.body
+    const {Email,deviceID}=req.body
     try {
         const user = await User.findOne({Email})
         const authenticators = user.devices
+        const device=authenticators.find(device=>device.id===deviceID)
+        if(!device){
+            return res.status(401).json({error:"device not recognised for this user"})
+        }
         const allowCredentials = []
         authenticators.forEach(authenticator => {
             allowCredentials.push({
@@ -90,6 +101,9 @@ route.post('/generate-authenticate-option',async (req, res) => {
         res.status(500).json({ error: "Internal Server Error" })
     }
 })
+
+//route-IV: /authenticate/Verify-Authentication - to verify the WebAuthn authentication object coming from client
+
 route.post('/Verify-Authentication', async (req, res) => {
     const { authenticationBody: body,Email } = req.body 
     try {
