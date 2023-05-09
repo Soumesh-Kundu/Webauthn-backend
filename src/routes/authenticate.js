@@ -72,13 +72,13 @@ route.post('/token-authenticate',async (req,res)=>{
 
 //route-III: /authenticate/generate-authenticate-option - to generate authentication option of WebAuthn 
 route.post('/generate-authenticate-option',async (req, res) => {
-    const {Email,deviceID}=req.body
+    const {Email,deviceID,mac}=req.body
     try {
         const user = await User.findOne({Email})
         const authenticators = user.devices
-        const device=authenticators.find(device=>device.id===deviceID)
-        if(!device){
-            return res.status(401).json({error:"device not recognised for this user"})
+        const device =mac?null:authenticators.find(device => device.id === deviceID)
+        if (!device && !mac) {
+            return res.status(401).json({ error: 'device not recognized for this user' })
         }
         const allowCredentials = []
         authenticators.forEach(authenticator => {
