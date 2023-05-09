@@ -1,3 +1,4 @@
+//all imports
 import express from 'express'
 import { config } from 'dotenv'
 import Token from '../models/Token.js'
@@ -10,7 +11,7 @@ import JWT from 'jsonwebtoken'
 import { base64urlToUint8, uint8Tobase64url, OTPGenerator } from '../helpers/helper.js'
 import sendSMS from '../helpers/sms.js';
 
-
+//setting values from env
 config()
 export const route = express.Router()
 const JWT_SECRET = process.env.SINGING_SECRET
@@ -19,6 +20,8 @@ const rpName = process.env.RP_NAME
 const rpID = process.env.RP_ID
 const origin = `https://${rpID}`
 
+
+//route-I: /register - To register device and send the OTP to their number
 route.post('/', async (req, res) => {
     try {
         const { Email, Phone } = req.body
@@ -37,7 +40,7 @@ route.post('/', async (req, res) => {
             to: Phone,
             body: `Your OTP is ${token}, this is valid for 60 seconds only`
         })
-
+        console.log(token)
         return res.status(200).json({ success: true, message: "your account has been created" })
     }
     catch (error) {
@@ -49,6 +52,8 @@ route.post('/', async (req, res) => {
         res.status(500).json({ error: "Internal Server Error" })
     }
 })
+
+//route-II: /register/generate-register-option - to generate Webauthn Registration option
 route.post('/generate-register-option', async (req, res) => {
     const { Email } = req.body
     try {
@@ -75,6 +80,7 @@ route.post('/generate-register-option', async (req, res) => {
     }
 })
 
+//route-III: /register/Verify-Registration - to verify the WebAuthn Registration object from the client 
 route.post('/Verify-Registration', async (req, res) => {
     const { registrationBody: body, Email } = req.body
     const user = await User.findOne({ Email })
@@ -97,9 +103,7 @@ route.post('/Verify-Registration', async (req, res) => {
                 id: user.id
             }
         }
-        const sessionToken = JWT.sign(data, JWT_SECRET)
-        res.status(200).json({ verified, sessionToken })
-        await User.findByIdAndUpdate(user.id, {
+        const newDevice=await User.findByIdAndUpdate(user.id, {
             $set: { challenge: "" },
             $push: {
                 devices: {
@@ -108,7 +112,10 @@ route.post('/Verify-Registration', async (req, res) => {
                     PublicKey: uint8Tobase64url(credentialPublicKey)
                 }
             }
-        })
+        },{new:true})
+        const {id}=newDevice.devices.at(-1)
+        const sessionToken = JWT.sign(data, JWT_SECRET)
+        res.status(200).json({ verified, sessionToken,deviceID:id })
     } catch (error) {
         console.log(error)
         return res.status(500).json({ error: "Internal Server Error" })

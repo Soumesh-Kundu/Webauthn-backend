@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 
+//setting the OTP Schema
 const TokenSchema=mongoose.Schema({
     secret:{type:String,require:true},
     user:{type:mongoose.Schema.Types.ObjectId,ref:"user"},
